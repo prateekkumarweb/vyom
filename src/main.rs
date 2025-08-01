@@ -47,7 +47,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let file = args[1];
                 println!("Get: file = {}", file);
                 let data = storage.get_file(file).await?;
-                println!("File data: {}", String::from_utf8_lossy(&data));
+                if let Some(data) = data {
+                    println!("File data: {}", String::from_utf8_lossy(&data));
+                }
             }
             "del" => {
                 if args.len() != 2 {

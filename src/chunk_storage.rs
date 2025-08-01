@@ -103,8 +103,8 @@ impl ChunkStorage {
 }
 
 pub struct ChunkManager {
-    storage: ChunkStorage,
-    chunk_size: usize,
+    pub(crate) storage: ChunkStorage,
+    pub(crate) chunk_size: usize,
 }
 
 impl ChunkManager {
