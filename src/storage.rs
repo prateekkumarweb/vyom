@@ -1,5 +1,7 @@
 use std::path::{Path, PathBuf};
 
+use tokio::io::AsyncRead;
+
 use crate::{chunk_storage::ChunkManager, file::FileMetadata};
 
 pub struct FileStorage {
@@ -11,11 +13,11 @@ pub struct FileStorage {
 #[derive(Debug, thiserror::Error)]
 pub enum VyomError {
     #[error(transparent)]
-    ChunkError(#[from] crate::chunk_storage::ChunkError),
+    Chunk(#[from] crate::chunk_storage::ChunkError),
     #[error(transparent)]
-    RocksdbError(#[from] rocksdb::Error),
+    Rocksdb(#[from] rocksdb::Error),
     #[error(transparent)]
-    SerdeError(#[from] serde_json::Error),
+    Serde(#[from] serde_json::Error),
 }
 
 type Result<T, E = VyomError> = std::result::Result<T, E>;
@@ -41,16 +43,16 @@ impl FileStorage {
         let mut data = Vec::with_capacity(file_metadata.size() as usize);
 
         for chunk in file_metadata.chunks() {
-            let chunk_data = self.chunk_manager.storage.get_chunk(&chunk.hash()).await?;
+            let chunk_data = self.chunk_manager.storage.get_chunk(chunk.hash()).await?;
             data.extend_from_slice(&chunk_data);
         }
 
         Ok(Some(data))
     }
 
-    pub async fn put_file(&self, file_name: &str, data: &[u8]) -> Result<()> {
-        let chunks = self.chunk_manager.chunk_file(data).await?;
-        let file_metadata = FileMetadata::new(file_name.to_string(), data.len() as u64, chunks);
+    pub async fn put_file(&self, file_name: &str, reader: impl AsyncRead + Unpin) -> Result<()> {
+        let chunks = self.chunk_manager.chunk_file(reader).await?;
+        let file_metadata = FileMetadata::new(file_name.to_string(), 0 as u64, chunks);
         let file_metadata = serde_json::to_vec(&file_metadata)?;
         self.file_db.put(file_name, &file_metadata)?;
         Ok(())
@@ -59,5 +61,16 @@ impl FileStorage {
     pub async fn del_file(&self, file_name: &str) -> Result<()> {
         self.file_db.delete(file_name)?;
         Ok(())
+    }
+
+    pub async fn all_files(&self) -> Result<Vec<String>> {
+        let mut files = Vec::new();
+        for key in self.file_db.iterator(rocksdb::IteratorMode::Start) {
+            let (key, _value) = key?;
+            if let Ok(file_name) = String::from_utf8(key.to_vec()) {
+                files.push(file_name);
+            }
+        }
+        Ok(files)
     }
 }

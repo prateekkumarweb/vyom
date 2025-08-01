@@ -48,7 +48,7 @@ impl ChunkStorage {
 
     pub async fn store_chunk(&self, data: &[u8]) -> Result<ChunkMetadata> {
         let hash = Sha256::digest(data);
-        let chunk_hash = ChunkHash::new(format!("{:x}", hash));
+        let chunk_hash = ChunkHash::new(format!("{hash:x}"));
 
         let chunk_path = self.get_chunk_path(&chunk_hash);
         if chunk_path.exists() {
@@ -77,7 +77,7 @@ impl ChunkStorage {
 
         let data = fs::read(&chunk_path).await?;
         let computed_hash = Sha256::digest(&data);
-        let computed_hash = format!("{:x}", computed_hash);
+        let computed_hash = format!("{computed_hash:x}");
 
         if computed_hash != hash.as_str() {
             return Err(ChunkError::CorruptChunk(hash.clone()));

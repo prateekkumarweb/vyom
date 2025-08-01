@@ -1,11 +1,16 @@
 use std::io::Write;
 
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::{
+    fs::File,
+    io::{AsyncBufReadExt, BufReader},
+};
 use vyom::FileStorage;
+
+const CHUNK_SIZE: usize = 64 * 1024;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let storage = FileStorage::new("./data", 1024).await?;
+    let storage = FileStorage::new("./data", CHUNK_SIZE).await?;
     println!(
         "vyom REPL started. Enter commands: get <file>, put <file> <path>, del <file>, or 'exit' to quit."
     );
@@ -35,9 +40,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 let file = args[1];
                 let path = args[2];
-                println!("Put: file = {}, path = {}", file, path);
-                let data = tokio::fs::read(path).await?;
-                storage.put_file(file, &data).await?;
+                println!("Put: file = {file}, path = {path}");
+                let reader = File::open(path).await?;
+                storage.put_file(file, reader).await?;
             }
             "get" => {
                 if args.len() != 2 {
@@ -45,7 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     continue;
                 }
                 let file = args[1];
-                println!("Get: file = {}", file);
+                println!("Get: file = {file}");
                 let data = storage.get_file(file).await?;
                 if let Some(data) = data {
                     println!("File data: {}", String::from_utf8_lossy(&data));
@@ -57,8 +62,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     continue;
                 }
                 let file = args[1];
-                println!("Del: file = {}", file);
+                println!("Del: file = {file}");
                 storage.del_file(file).await?;
+            }
+            "all" => {
+                println!("Listing all files:");
+                match storage.all_files().await {
+                    Ok(files) => {
+                        for file in files {
+                            println!("{file}");
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Error listing files: {e}");
+                    }
+                }
             }
             _ => {
                 eprintln!("Unknown command: {}", args[0]);
