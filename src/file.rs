@@ -15,7 +15,7 @@ pub struct FileMetadata {
 impl FileMetadata {
     pub fn new(name: String, size: u64, chunks: Vec<ChunkMetadata>) -> Self {
         let now = Timestamp::now();
-        FileMetadata {
+        Self {
             name,
             size,
             created_at: now,
@@ -28,15 +28,15 @@ impl FileMetadata {
         &self.name
     }
 
-    pub fn size(&self) -> u64 {
+    pub const fn size(&self) -> u64 {
         self.size
     }
 
-    pub fn created_at(&self) -> Timestamp {
+    pub const fn created_at(&self) -> Timestamp {
         self.created_at
     }
 
-    pub fn modified_at(&self) -> Timestamp {
+    pub const fn modified_at(&self) -> Timestamp {
         self.modified_at
     }
 

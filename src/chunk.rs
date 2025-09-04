@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 pub struct ChunkHash(String);
 
 impl ChunkHash {
-    pub fn new(hash: String) -> Self {
-        ChunkHash(hash)
+    pub const fn new(hash: String) -> Self {
+        Self(hash)
     }
 
     pub fn as_str(&self) -> &str {
@@ -32,15 +32,15 @@ pub struct ChunkMetadata {
 }
 
 impl ChunkMetadata {
-    pub fn new(hash: ChunkHash, size: u64) -> Self {
-        ChunkMetadata { hash, size }
+    pub const fn new(hash: ChunkHash, size: u64) -> Self {
+        Self { hash, size }
     }
 
-    pub fn hash(&self) -> &ChunkHash {
+    pub const fn hash(&self) -> &ChunkHash {
         &self.hash
     }
 
-    pub fn size(&self) -> u64 {
+    pub const fn size(&self) -> u64 {
         self.size
     }
 }

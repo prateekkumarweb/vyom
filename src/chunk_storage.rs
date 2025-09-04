@@ -34,7 +34,7 @@ impl ChunkStorage {
         fs::create_dir_all(&chunks_dir).await?;
         fs::create_dir_all(&temp_dir).await?;
 
-        Ok(ChunkStorage {
+        Ok(Self {
             chunks_dir,
             temp_dir,
         })
@@ -56,6 +56,8 @@ impl ChunkStorage {
             return Ok(ChunkMetadata::new(chunk_hash, metadata.len()));
         }
 
+        // Chunk path is concatenation of chunk_dir and hash, so parent cannot be none
+        #[allow(clippy::unwrap_used)]
         let prefix_dir = chunk_path.parent().unwrap();
         fs::create_dir_all(prefix_dir).await?;
 
@@ -86,9 +88,9 @@ impl ChunkStorage {
         Ok(data)
     }
 
-    pub async fn chunk_exists(&self, hash: &ChunkHash) -> Result<bool> {
+    pub fn chunk_exists(&self, hash: &ChunkHash) -> bool {
         let chunk_path = self.get_chunk_path(hash);
-        Ok(chunk_path.exists())
+        chunk_path.exists()
     }
 
     pub async fn delete_chunk(&self, hash: &ChunkHash) -> Result<()> {

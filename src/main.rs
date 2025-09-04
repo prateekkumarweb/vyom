@@ -63,11 +63,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 let file = args[1];
                 println!("Del: file = {file}");
-                storage.del_file(file).await?;
+                storage.del_file(file)?;
             }
             "all" => {
                 println!("Listing all files:");
-                match storage.all_files().await {
+                match storage.all_files() {
                     Ok(files) => {
                         for file in files {
                             println!("{file}");
