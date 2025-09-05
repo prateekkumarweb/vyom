@@ -1,5 +1,6 @@
 use std::io::Write;
 
+use clap::{Parser, Subcommand};
 use tokio::{
     fs::File,
     io::{AsyncBufReadExt, BufReader},
@@ -8,9 +9,33 @@ use vyom::FileStorage;
 
 const CHUNK_SIZE: usize = 64 * 1024;
 
+#[derive(Debug, Parser)]
+struct Args {
+    #[command(subcommand)]
+    command: Option<Command>,
+}
+
+#[derive(Debug, Subcommand)]
+enum Command {
+    /// Start a REPL session
+    Repl {
+        #[arg(short, long, default_value = "./data")]
+        data_dir: String,
+    },
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let storage = FileStorage::new("./data", CHUNK_SIZE).await?;
+    let cli = Args::parse();
+    let root_dir = match &cli.command {
+        Some(Command::Repl { data_dir }) => data_dir,
+        None => {
+            eprintln!("No command provided. Use --help for usage information.");
+            std::process::exit(1);
+        }
+    };
+
+    let storage = FileStorage::new(root_dir, CHUNK_SIZE).await?;
     println!(
         "vyom REPL started. Enter commands: get <file>, put <file> <path>, del <file>, or 'exit' to quit."
     );
