@@ -1,5 +1,6 @@
 use std::io::Write;
 
+use axum::{Router, routing::get};
 use clap::{Parser, Subcommand};
 use tokio::{
     fs::File,
@@ -11,6 +12,9 @@ const CHUNK_SIZE: usize = 64 * 1024;
 
 #[derive(Debug, Parser)]
 struct Args {
+    /// Directory to store data
+    #[arg(short, long, default_value = "./data")]
+    data_dir: String,
     #[command(subcommand)]
     command: Option<Command>,
 }
@@ -18,23 +22,32 @@ struct Args {
 #[derive(Debug, Subcommand)]
 enum Command {
     /// Start a REPL session
-    Repl {
-        #[arg(short, long, default_value = "./data")]
-        data_dir: String,
-    },
+    Repl,
+    /// Serve on HTTP
+    Serve,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Args::parse();
-    let root_dir = match &cli.command {
-        Some(Command::Repl { data_dir }) => data_dir,
-        None => {
-            eprintln!("No command provided. Use --help for usage information.");
-            std::process::exit(1);
-        }
-    };
+    let root_dir = cli.data_dir;
 
+    match cli.command {
+        Some(Command::Repl) => {
+            start_repl(&root_dir).await?;
+        }
+        Some(Command::Serve) => {
+            start_server(&root_dir).await?;
+        }
+        None => {
+            println!("No command provided. Use --help for usage information.");
+        }
+    }
+    Ok(())
+}
+
+async fn start_repl(root_dir: &str) -> Result<(), Box<dyn std::error::Error>> {
+    println!("Initializing storage at: {}", root_dir);
     let storage = FileStorage::new(root_dir, CHUNK_SIZE).await?;
     println!(
         "vyom REPL started. Enter commands: get <file>, put <file> <path>, del <file>, or 'exit' to quit."
@@ -108,4 +121,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
+}
+
+async fn start_server(_root_dir: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let app = Router::new().route("/", get(|| async { "Hello, World!" }));
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8966").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
+    Ok(())
 }
