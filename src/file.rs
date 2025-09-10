@@ -10,10 +10,16 @@ pub struct FileMetadata {
     created_at: Timestamp,
     modified_at: Timestamp,
     chunks: Vec<ChunkMetadata>,
+    mime_type: Option<String>,
 }
 
 impl FileMetadata {
-    pub fn new(name: String, size: u64, chunks: Vec<ChunkMetadata>) -> Self {
+    pub fn new(
+        name: String,
+        size: u64,
+        chunks: Vec<ChunkMetadata>,
+        mime_type: Option<String>,
+    ) -> Self {
         let now = Timestamp::now();
         Self {
             name,
@@ -21,6 +27,7 @@ impl FileMetadata {
             created_at: now,
             modified_at: now,
             chunks,
+            mime_type,
         }
     }
 
@@ -42,5 +49,9 @@ impl FileMetadata {
 
     pub fn chunks(&self) -> &[ChunkMetadata] {
         &self.chunks
+    }
+
+    pub fn mime_type(&self) -> Option<&str> {
+        self.mime_type.as_deref()
     }
 }

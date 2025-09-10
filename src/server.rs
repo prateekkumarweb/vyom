@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{
     Json, Router,
     extract::{Path, State},
-    http::StatusCode,
+    http::{StatusCode, header},
     response::{IntoResponse, Response},
     routing::{delete, get, post},
 };
@@ -19,6 +19,7 @@ pub struct AppState {
 #[derive(Deserialize)]
 struct PutFileRequest {
     content: String,
+    mime_type: Option<String>,
 }
 
 impl AppState {
@@ -46,7 +47,10 @@ async fn list_files(State(state): State<AppState>) -> Response {
 
 async fn get_file(Path(filename): Path<String>, State(state): State<AppState>) -> Response {
     match state.storage.get_file(&filename).await {
-        Ok(Some(data)) => (StatusCode::OK, data).into_response(),
+        Ok(Some((data, metadata))) => {
+            let content_type = metadata.mime_type().unwrap_or("application/octet-stream");
+            (StatusCode::OK, [(header::CONTENT_TYPE, content_type)], data).into_response()
+        }
         Ok(None) => StatusCode::NOT_FOUND.into_response(),
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
     }
@@ -60,7 +64,11 @@ async fn put_file(
     let content_bytes = request.content.into_bytes();
     let cursor = std::io::Cursor::new(content_bytes);
 
-    match state.storage.put_file(&filename, cursor).await {
+    match state
+        .storage
+        .put_file(&filename, cursor, request.mime_type)
+        .await
+    {
         Ok(()) => StatusCode::CREATED.into_response(),
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
     }
@@ -97,12 +105,14 @@ pub async fn start_server(
     let bind_addr = format!("0.0.0.0:{port}");
     println!("Starting vyom server on {bind_addr}");
     println!("API endpoints:");
-    println!("  GET  /               - Health check");
-    println!("  GET  /health         - Health check");
-    println!("  GET  /files          - List all files (newline separated)");
-    println!("  GET  /files/{{filename}}     - Get file content (raw bytes)");
-    println!("  POST /files/{{filename}}     - Store file (JSON: {{\"content\": \"...\"}})");
-    println!("  DELETE /files/{{filename}}   - Delete file");
+    println!("  GET / - Health check");
+    println!("  GET /health - Health check");
+    println!("  GET /files - List all files (newline separated)");
+    println!("  GET /files/{{filename}} - Get file content (raw bytes)");
+    println!(
+        "  POST /files/{{filename}} - Store file (JSON: {{\"content\": \"...\", \"mime_type\": \"...\"}})"
+    );
+    println!("  DELETE /files/{{filename}} - Delete file");
 
     let listener = tokio::net::TcpListener::bind(&bind_addr).await?;
     axum::serve(listener, app).await?;

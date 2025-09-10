@@ -119,7 +119,7 @@ impl ReplSession {
 
         match File::open(file_path).await {
             Ok(reader) => {
-                self.storage.put_file(file_name, reader).await?;
+                self.storage.put_file(file_name, reader, None).await?;
                 println!("Successfully stored file '{file_name}'");
             }
             Err(e) => {
@@ -140,8 +140,11 @@ impl ReplSession {
         println!("Retrieving file '{file_name}'...");
 
         match self.storage.get_file(file_name).await? {
-            Some(data) => {
+            Some((data, metadata)) => {
                 println!("File content ({} bytes):", data.len());
+                if let Some(mime_type) = metadata.mime_type() {
+                    println!("MIME type: {mime_type}");
+                }
                 println!("{}", String::from_utf8_lossy(&data));
             }
             None => {

@@ -35,7 +35,7 @@ impl FileStorage {
         })
     }
 
-    pub async fn get_file(&self, file_name: &str) -> Result<Option<Vec<u8>>> {
+    pub async fn get_file(&self, file_name: &str) -> Result<Option<(Vec<u8>, FileMetadata)>> {
         let Some(file_metadata_bytes) = self.file_db.get(file_name)? else {
             return Ok(None);
         };
@@ -48,12 +48,17 @@ impl FileStorage {
             data.extend_from_slice(&chunk_data);
         }
 
-        Ok(Some(data))
+        Ok(Some((data, file_metadata)))
     }
 
-    pub async fn put_file(&self, file_name: &str, reader: impl AsyncRead + Unpin) -> Result<()> {
+    pub async fn put_file(
+        &self,
+        file_name: &str,
+        reader: impl AsyncRead + Unpin,
+        mime_type: Option<String>,
+    ) -> Result<()> {
         let chunks = self.chunk_manager.chunk_file(reader).await?;
-        let file_metadata = FileMetadata::new(file_name.to_string(), 0_u64, chunks);
+        let file_metadata = FileMetadata::new(file_name.to_string(), 0_u64, chunks, mime_type);
         let file_metadata = serde_json::to_vec(&file_metadata)?;
         self.file_db.put(file_name, &file_metadata)?;
         Ok(())
