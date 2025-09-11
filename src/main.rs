@@ -25,7 +25,9 @@ enum Command {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt::init();
     let cli = Args::parse();
+    tracing::debug!("Args: {:?}", &cli);
     let root_dir = cli.data_dir;
     let port = cli.port;
 
