@@ -31,10 +31,12 @@ impl AppState {
     }
 }
 
+#[tracing::instrument]
 async fn health_check() -> &'static str {
     "vyom storage server is running"
 }
 
+#[tracing::instrument(skip(state))]
 async fn list_files(State(state): State<AppState>) -> Response {
     state.storage.all_files().map_or_else(
         |_| StatusCode::INTERNAL_SERVER_ERROR.into_response(),
@@ -45,6 +47,7 @@ async fn list_files(State(state): State<AppState>) -> Response {
     )
 }
 
+#[tracing::instrument(skip(state))]
 async fn get_file(Path(filename): Path<String>, State(state): State<AppState>) -> Response {
     match state.storage.get_file(&filename).await {
         Ok(Some((data, metadata))) => {
@@ -56,6 +59,7 @@ async fn get_file(Path(filename): Path<String>, State(state): State<AppState>) -
     }
 }
 
+#[tracing::instrument(skip(state, request))]
 async fn put_file(
     Path(filename): Path<String>,
     State(state): State<AppState>,
@@ -74,6 +78,7 @@ async fn put_file(
     }
 }
 
+#[tracing::instrument(skip(state))]
 async fn delete_file(Path(filename): Path<String>, State(state): State<AppState>) -> Response {
     match state.storage.del_file(&filename) {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
@@ -92,6 +97,7 @@ fn create_router(state: AppState) -> Router {
         .with_state(state)
 }
 
+#[tracing::instrument]
 pub async fn start_server(
     root_dir: &str,
     chunk_size: usize,

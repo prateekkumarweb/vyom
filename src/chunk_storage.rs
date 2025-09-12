@@ -26,6 +26,7 @@ pub enum ChunkError {
 type Result<T, E = ChunkError> = std::result::Result<T, E>;
 
 impl ChunkStorage {
+    #[tracing::instrument(skip(root_dir))]
     pub async fn new(root_dir: impl AsRef<Path>) -> Result<Self> {
         let root_path = root_dir.as_ref();
         let chunks_dir = root_path.join("chunks");
@@ -46,6 +47,7 @@ impl ChunkStorage {
         prefix_dir.join(chunk_hash.as_str())
     }
 
+    #[tracing::instrument(skip(self, data))]
     pub async fn store_chunk(&self, data: &[u8]) -> Result<ChunkMetadata> {
         let hash = Sha256::digest(data);
         let chunk_hash = ChunkHash::new(format!("{hash:x}"));
@@ -71,6 +73,7 @@ impl ChunkStorage {
         Ok(ChunkMetadata::new(chunk_hash, data.len() as u64))
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn get_chunk(&self, hash: &ChunkHash) -> Result<Vec<u8>> {
         let chunk_path = self.get_chunk_path(hash);
         if !chunk_path.exists() {
@@ -93,6 +96,7 @@ impl ChunkStorage {
         chunk_path.exists()
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn delete_chunk(&self, hash: &ChunkHash) -> Result<()> {
         let chunk_path = self.get_chunk_path(hash);
 
@@ -110,6 +114,7 @@ pub struct ChunkManager {
 }
 
 impl ChunkManager {
+    #[tracing::instrument(skip(root_path))]
     pub async fn new(root_path: impl AsRef<Path>, chunk_size: usize) -> Result<Self> {
         let storage = ChunkStorage::new(root_path).await?;
         Ok(Self {
@@ -118,6 +123,7 @@ impl ChunkManager {
         })
     }
 
+    #[tracing::instrument(skip(self, reader))]
     pub async fn chunk_file<R: AsyncRead + Unpin>(
         &self,
         mut reader: R,

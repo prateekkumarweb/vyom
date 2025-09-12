@@ -12,6 +12,7 @@ pub struct ReplSession {
 }
 
 impl ReplSession {
+    #[tracing::instrument]
     pub async fn new(
         root_dir: &str,
         chunk_size: usize,
@@ -21,6 +22,7 @@ impl ReplSession {
         Ok(Self { storage })
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
         Self::print_welcome();
         let stdin = tokio::io::stdin();
@@ -61,6 +63,7 @@ impl ReplSession {
         std::io::stdout().flush()
     }
 
+    #[tracing::instrument(skip(self, reader))]
     async fn read_input(
         &self,
         reader: &mut BufReader<tokio::io::Stdin>,
@@ -74,6 +77,7 @@ impl ReplSession {
         matches!(input, "exit" | "quit")
     }
 
+    #[tracing::instrument(skip(self))]
     async fn handle_command(&self, input: &str) -> Result<(), Box<dyn std::error::Error>> {
         let args: Vec<&str> = input.split_whitespace().collect();
         if args.is_empty() {
@@ -106,6 +110,7 @@ impl ReplSession {
         }
     }
 
+    #[tracing::instrument(skip(self, args))]
     async fn handle_put(&self, args: &[&str]) -> Result<(), Box<dyn std::error::Error>> {
         if args.len() != 3 {
             eprintln!("Usage: put <file> <path>");
@@ -130,6 +135,7 @@ impl ReplSession {
         Ok(())
     }
 
+    #[tracing::instrument(skip(self, args))]
     async fn handle_get(&self, args: &[&str]) -> Result<(), Box<dyn std::error::Error>> {
         if args.len() != 2 {
             eprintln!("Usage: get <file>");
@@ -201,6 +207,7 @@ impl ReplSession {
     }
 }
 
+#[tracing::instrument]
 pub async fn start_repl(
     root_dir: &str,
     chunk_size: usize,

@@ -23,6 +23,7 @@ pub enum VyomError {
 type Result<T, E = VyomError> = std::result::Result<T, E>;
 
 impl FileStorage {
+    #[tracing::instrument(skip(root_path))]
     pub async fn new(root_path: impl AsRef<Path>, chunk_size: usize) -> Result<Self> {
         let chunk_manager = ChunkManager::new(root_path.as_ref(), chunk_size).await?;
         let file_db_path = root_path.as_ref().join("file_db");
@@ -35,6 +36,7 @@ impl FileStorage {
         })
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn get_file(&self, file_name: &str) -> Result<Option<(Vec<u8>, FileMetadata)>> {
         let Some(file_metadata_bytes) = self.file_db.get(file_name)? else {
             return Ok(None);
@@ -51,6 +53,7 @@ impl FileStorage {
         Ok(Some((data, file_metadata)))
     }
 
+    #[tracing::instrument(skip(self, reader))]
     pub async fn put_file(
         &self,
         file_name: &str,
