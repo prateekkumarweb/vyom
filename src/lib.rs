@@ -10,7 +10,6 @@
 mod chunk;
 mod chunk_storage;
 mod file;
-pub mod repl;
 pub mod server;
 mod storage;
 

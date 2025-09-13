@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use vyom::{repl, server};
+use vyom::server;
 
 const CHUNK_SIZE: usize = 64 * 1024;
 
@@ -17,8 +17,6 @@ struct Args {
 
 #[derive(Debug, Subcommand)]
 enum Command {
-    /// Start a REPL session
-    Repl,
     /// Serve on HTTP
     Serve,
 }
@@ -33,16 +31,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let port = cli.port;
 
     match cli.command {
-        Some(Command::Repl) => {
-            repl::start_repl(&root_dir, CHUNK_SIZE).await?;
-        }
         Some(Command::Serve) => {
             server::start_server(&root_dir, CHUNK_SIZE, port).await?;
         }
         None => {
             println!("No command provided. Use --help for usage information.");
             println!("Available commands:");
-            println!("  repl   - Start a REPL session");
             println!("  serve  - Start HTTP server");
         }
     }
